@@ -8,10 +8,9 @@ from setup import SETUP
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-sns.set_theme("paper")
+sns.set_theme("paper", font_scale=0.7)
 sns.set_style("ticks")
 plt.rcParams["figure.figsize"] = (3.5,2.5)
-
 
 
 PAGES = [
@@ -26,8 +25,8 @@ PAGES = [
 
 def init_state(state):
     if "curr_page" not in state:
-        state.curr_page = "Countres"
-        state.curr_page_index = 2
+        state.curr_page = "Concept"
+        state.curr_page_index = 0
         state.pages = PAGES
 
     if "setup" not in state:

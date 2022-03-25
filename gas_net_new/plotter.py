@@ -27,15 +27,15 @@ def plot_ts(df, fig_type="share", detailed=False):
     else:
         color = list(map(lambda x: x+"80", color)) + \
             list(map(lambda x: x+"E6", color))
-            
+
     fig, ax = plt.subplots()
-    
+
     df.plot(
         kind='area',
         stacked=True,
         color=color,
         linewidth=0,
-        ax= ax
+        ax=ax
     )
 
     if fig_type == "share":
@@ -44,10 +44,11 @@ def plot_ts(df, fig_type="share", detailed=False):
     else:
         plt.ylabel("Supply amount (kwh/d)")
     plt.xlabel("")
-    plt.margins(0,0)
+    plt.margins(0, 0)
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
 
     return fig
+
 
 def plot_converge(diff_list):
     diff = []
@@ -104,20 +105,22 @@ def plot_share(res_df, title=None, plot_country=None, re_indexing=None, sorting=
     # sort based on columns
     if sorting:
         temp = temp.sort_values(by=sorting, ascending=False)
-        
+
+    fig, ax = plt.subplots()
     if plot:
         temp.plot(kind='bar',
-                stacked=True,
-                title=title,
-                width=0.7,
-                color=COUNTRY_COLOR,
-                edgecolor="none")
+                  stacked=True,
+                  title=title,
+                  width=0.7,
+                  color=COUNTRY_COLOR,
+                  edgecolor="none",
+                  ax=ax)
         plt.ylabel("Supply share (%)")
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.2))
         plt.xticks(rotation=45)
         plt.margins(0)
     # plt.show()
-    return temp
+    return temp, fig
 
 
 def plot_net(net):
@@ -151,43 +154,44 @@ def plot_net(net):
     # plt.show()
 
 
-def plot_net_flow(node, link, net, column="RU", cmap=None, base_size = 300, diff=False):
+def plot_net_flow(node, link, net, column="RU", cmap=None, base_size=300, diff=False):
     if cmap is None:
         cmap = cm.copper
-        
-    temp = node.groupby(["country"]).sum().reset_index()[["DIS","FNC"]]
+
+    temp = node.groupby(["country"]).sum().reset_index()[["DIS", "FNC"]]
     temp["c"] = temp["DIS"]+temp["FNC"]
     node_res = node.groupby(["country"]).mean().reset_index()
     node_res["c"] = temp["c"]
 
-    temp = link.groupby(["st","ed"]).sum().reset_index()[["flow"]]
-    link_res = link.groupby(["st","ed"]).mean().reset_index()
+    temp = link.groupby(["st", "ed"]).sum().reset_index()[["flow"]]
+    link_res = link.groupby(["st", "ed"]).mean().reset_index()
     link_res["flow"] = temp["flow"]
 
     for e in EXPORTING:
-        node_res.loc[node_res["country"]==e, e]=1
-        node_res.loc[node_res["country"]==e, "c"] = link_res.loc[link_res["st"]==e].sum()["flow"]
-        link_res.loc[link_res["st"]==e, e]=1
-        
+        node_res.loc[node_res["country"] == e, e] = 1
+        node_res.loc[node_res["country"] == e, "c"] = link_res.loc[link_res["st"] == e].sum()[
+            "flow"]
+        link_res.loc[link_res["st"] == e, e] = 1
+
     # print(node_res)
     # print(link_res)
-    
+
     # node size
     minima = min(np.abs(node_res["c"]))
     maxima = max(np.abs(node_res["c"]))
     node_res["size"] = np.abs(node_res["c"])/maxima*1000+base_size
-        
+
     # edge width and arrow size
     minima = min(np.abs(link_res["flow"]))
     maxima = max(np.abs(link_res["flow"]))
     link_res["width"] = np.abs(link_res["flow"])/maxima*5+2
     link_res["arrow_size"] = np.abs(link_res["flow"])/maxima*3+5
-    
+
     # node color
-    
+
     node_res = color_map2(node_res, column, CM)
     link_res = color_map2(link_res, column, CM)
-    
+
     # minima = min(node_res[column])
     # maxima = max(node_res[column])
 
@@ -198,7 +202,7 @@ def plot_net_flow(node, link, net, column="RU", cmap=None, base_size = 300, diff
     # for cc in c:
     #     colors.append(matplotlib.colors.to_hex(cc, keep_alpha=True))
     # node_res["color"] = colors
-    
+
     # # if diff:
     # #     node_res.loc[node_res[column]>=0,"color"] ="r"
     # #     node_res.loc[node_res[column]<0,"color"] ="b"
@@ -222,34 +226,40 @@ def plot_net_flow(node, link, net, column="RU", cmap=None, base_size = 300, diff
     #     link_res.loc[link_res[column]<0,"color"] ="b"
     # print(node_res)
     # print(link_res)
-    
-    
+
     G = nx.MultiDiGraph()
     for row in node_res.iterrows():
         r = row[1]
         n = net.nodes[r["country"]]
-        G.add_node(n.id,  pos=(n.x, n.y), size=r["size"], color=r["color"] )
-        
+        G.add_node(n.id,  pos=(n.x, n.y), size=r["size"], color=r["color"])
+
     for row in link_res.iterrows():
         r = row[1]
-        if r["st"] not in NO_CONSUMPTION and r["ed"] not in EXPORTING and r["flow"]>0:
-            G.add_edges_from([(r["st"], r["ed"])], width=r["width"], arrow_size = r["arrow_size"], color=r["color"])
-            
+        if r["st"] not in NO_CONSUMPTION and r["ed"] not in EXPORTING and r["flow"] > 0:
+            G.add_edges_from([(r["st"], r["ed"])], width=r["width"],
+                             arrow_size=r["arrow_size"], color=r["color"])
+
     color_list = list(nx.get_node_attributes(G, 'color').values())
     size_list = list(nx.get_node_attributes(G, 'size').values())
 
     color_list_link = list(nx.get_edge_attributes(G, 'color').values())
     width_list_link = list(nx.get_edge_attributes(G, 'width').values())
-    arrow_size_list_link = list(nx.get_edge_attributes(G, 'arrow_size').values())
-
+    arrow_size_list_link = list(
+        nx.get_edge_attributes(G, 'arrow_size').values())
+    
+    fig, ax = plt.subplots(figsize=(10,7))
+    
     nx.draw(G, nx.get_node_attributes(G, 'pos'),
             with_labels=True,
             node_color=color_list,
-            edge_color=color_list_link, 
+            edge_color=color_list_link,
             arrowsize=arrow_size_list_link,
             node_size=size_list,
-            font_color ="#de4e6d",
-            font_weight ="bold",
+            # font_color="#de4e6d",
+            font_weight="bold",
             width=width_list_link,
-            connectionstyle='arc3, rad = 0.15'
+            connectionstyle='arc3, rad = 0.15',
+            ax=ax
             )
+    
+    return fig

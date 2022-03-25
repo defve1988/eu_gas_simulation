@@ -1,72 +1,52 @@
-# from numpy import correlate
 import streamlit as st
 
-# from pandas_profiling import ProfileReport
-# from streamlit_pandas_profiling import st_profile_report
-    
+import pandas as pd
+import numpy as np
+import altair as alt
+from gas_net_new.constant import COUNTRY, COUNTRY_COLOR_2, COUNTRY_COLOR
+import matplotlib.pyplot as plt
+from gas_net_new import pd_utils
 
-# CORRS = ["pearson", "spearman", "kendall", "phi_k", "cramers"]
 
 class NetWork:
-    
     @staticmethod
-    def init_profile(config):
-        config.samples.head=0
-        config.samples.tail=0
-        config.samples.random=0
-        config.missing_diagrams["bar"] = False
-        config.missing_diagrams["matrix"] = False
-        config.missing_diagrams["heatmap"] = False
-        config.missing_diagrams["dendrogram"] = False
-        config.interactions.targets = []
-        config.interactions.continuous = False
+    def plot_net(g, supply, y1, y2, base_size):
+        node1 = pd_utils.get_period_data(g.res_node,f"{y1}-01-01", f"{y2}-12-31")
+        link1 = pd_utils.get_period_data(g.res_link,f"{y1}-01-01", f"{y2}-12-31")
+        fig = g.plot_net_flow(node1, link1, g.net, column=supply, base_size=base_size)
+        plt.title("Gas network flow \n(share => color, amount => size/width)")
+        st.pyplot(fig)
         
-
-        for c in CORRS:
-            config.correlations[c].calculate = False
-        
-        return config
-    
-    
-    @staticmethod
-    def show_missing(config): 
-        config.missing_diagrams["bar"] = True
-        config.missing_diagrams["matrix"] = True
-        config.missing_diagrams["heatmap"] = True
-        config.missing_diagrams["dendrogram"] = True
-        
-        return config
-    
     
     @staticmethod
     def write(state):
-        st.header("Data Summary")
-        if state.g is not None:
-            st.dataframe(state.g.res_node)
-            # pr = state.df.profile_report()
-                                            
-            # pr.config = DataInfo.init_profile(pr.config)
-
-            # show_corr = st.checkbox("Show correlation")
-            # if show_corr:
-            #     selected_corr = st.multiselect(
-            #         "Correlations", CORRS, CORRS)
-            #     for c in selected_corr:
-            #         pr.config.correlations[c].calculate = True
-
-            # # show_interaction = st.checkbox("Show interations")
-            # # if show_interaction:
-            # #     selected_vars = st.multiselect(
-            # #         "Variables", state.df.columns, list(state.df.columns))
-            # #     pr.config.interactions.targets = selected_vars
-            # #     pr.config.interactions.continuous = True
-
-            # show_missing = st.checkbox("Show missing values")
-            # if show_missing:
-            #     pr.config = DataInfo.show_missing(pr.config)
-
-            # ok = st.button("Generate Summary")
-            # if ok:
-            #     st_profile_report(pr)
-        else:
-            st.error("Please upload/select dataset first!")
+        st.header("NetWork View")
+        try:
+            cc1, _, _ = st.columns(3)
+            
+            supply =  cc1.selectbox(
+                "Supply",
+                ["RU", "all", "LNG", "PRO", "AZ", "DZ","LY", "RS","TR", "NO"]
+            )
+            
+            c1, c2 = st.columns(2)
+            
+            y1 = c1.selectbox(
+                "Starting Year",
+                (2017, 2018, 2019, 2020, 2021),
+                index=0,                
+            )
+            y2 = c2.selectbox(
+                "Ending Year",
+                (2017, 2018, 2019, 2020, 2021),
+                index=4,
+            )
+            base_size =c1.slider('Base node size', 100, 800, 300)
+            
+            NetWork.plot_net(state.g, supply, y1, y2, base_size=base_size)
+            
+            
+            
+        except Exception as e:
+            st.error("hum... something is going wrong here...")
+            st.error(e)
