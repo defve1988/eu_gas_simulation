@@ -26,8 +26,8 @@ PAGES = [
 
 def init_state(state):
     if "curr_page" not in state:
-        state.curr_page = "Time Series"
-        state.curr_page_index = 1
+        state.curr_page = "Countres"
+        state.curr_page_index = 2
         state.pages = PAGES
 
     if "setup" not in state:
